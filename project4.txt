@@ -1,0 +1,230 @@
+
+;Goal of this program: Solve the 8-puzzle problem
+;Approach: A* search using Manhattan value as the heuristic
+
+;Some important note:
+;1. My approach of solving this problem is by using recursion. After finding a result, then I use backtracking to find the correct path from start to result
+;2. For the sake of performing backtracking and keep the step count, I attached 2 additional numbers in from of every lists (board).
+
+;For example, if a board is (1 2 3 4 5 6 7 8 0), I would make it (3 10 1 2 3 4 5 6 7 8 0). 
+;3 in the beginning means the transaction between this board and the previous board is 0 got moved "DOWN" (1 = UP, 2 = RIGHT, 3 = DOWN, 4 = LEFT, 0 = STARTING POINT). I use this number to track each step until the beginning
+;10 means the total count of movement from start to this board
+
+;Issues:
+;Due to my poor Lisp optimization technique, this program runs pretty slowly. Please be patient, the result may take 10~20 seconds, depending on how many iteration is needed to find the solution.
+
+
+;This function count the length of the input board, its for helping check_board function
+(defun size (board)
+    (let* ((count 0))
+          (dolist (next board)
+              (setf count (+ count 1)))
+          count))
+
+;This function check if the board is leagal. A leagal should contain numbers 0-8 exactly once
+(defun check_board (board)
+    (let* ((result t))
+          (dotimes (counter 9 result)
+              (setf result (and result (member counter board))))
+          (cond ((null result)) (t (princ "board ok") (terpri)))
+          (cond ((not (= (size board) 9)) (setf result nil)))
+          result
+    ))
+
+;This function find and return the index of number 0 (the empty spot)
+(defun find_index (index board)
+    (let* ((result))
+        (dotimes (counter 9 result)
+            (cond ((= (car board) index) (setf result counter)) (t nil))
+            (setf board (cdr board)))
+          result))
+
+;This function find and return the value of a given index and board setup
+(defun get_val (index board)
+    (dotimes (counter index)
+        (setf board (cdr board)))
+    (car board))
+
+;This is just a print function for outputting board
+(defun print_board (board)
+    (dotimes (counter 9)
+        (prin1 (get_val counter board))
+        (cond ((= (mod counter 3) 2) (terpri)) (t nil))))
+
+;This function swap the value of two given index on a board.
+(defun swap_val (index1 index2 board)
+    (let* ((list1 nil) (list2 nil) (list3 nil) (temp1) (temp2) (temp nil))
+          (cond ((> index1 index2) (setf temp1 index2) (setf temp2 index1)) ((< index1 index2) (setf temp1 index1) (setf temp2 index2)) (t nil))
+          (dotimes (counter 9)
+              (cond ((< counter temp1) (setf list1 (append list1 (cons (get_val counter board) nil)))) ((and (< counter temp2) (> counter temp1)) (setf list2 (append list2 (cons (get_val counter board) nil)))) ((> counter temp2) (setf list3 (append list3 (cons (get_val counter board) nil)))))
+              )
+          (setf temp (append (append (append (append list1 (cons (get_val temp2 board) nil)) list2) (cons (get_val temp1 board) nil)) list3))
+          temp
+          ))
+
+;This function determine the index that has to be changed, then apply the function above
+(defun swap_pos (index direction board)
+    (let* ((temp 0) (newboard nil))
+          (cond ((= direction 1) (setf temp (- index 3)))
+              ((= direction 2) (setf temp (+ index 1)))
+              ((= direction 3) (setf temp (+ index 3)))
+              ((= direction 4) (setf temp (- index 1)))
+              (t nil))
+          (setf newboard (swap_val temp index board))
+          newboard
+          ))
+
+;This function calculate and return the Manhattan value of a given board
+(defun Manhattan (board goal)
+    (let* ((v_move) (h_move) (total_move 0))
+        (dotimes (counter 9)
+            (cond ((= (get_val counter board) 0)) (t 
+                (setf v_move (abs (- (floor (find_index (get_val counter board) goal) 3) (floor counter 3))))
+                (setf h_move (abs (- (mod (find_index (get_val counter board) goal) 3) (mod counter 3))))
+                (setf total_move (+ total_move (+ v_move h_move))))))
+          total_move))
+
+;This function find all the available swap direction for 0
+(defun find_available_dir (board)
+    (let* ((result nil) (index))
+          (setf index (find_index 0 board))
+          (cond ((>= (- index 3) 0) (setf result (cons 1 result))) (t nil))
+          (cond ((<= (+ index 3) 8) (setf result (cons 3 result))) (t nil))
+          (cond ((not (= (mod index 3) 2)) (setf result (cons 2 result))) (t nil))
+          (cond ((not (= (mod index 3) 0)) (setf result (cons 4 result))) (t nil))
+          result))
+
+;This function sort the frontier by the heuristic value 
+(defun Manhattan_sort (list board)
+    (let* ((fx 0) (gx 0) (list_fx nil) (list_nofx nil))
+          (dolist (next list)
+              (setf gx (Manhattan (cddr next) board))
+              (setf fx (+ gx (cadr next)))
+              (setf list_fx (append list_fx (list (cons fx next)))))
+              
+          (stable-sort list_fx '< :key #'car)
+          (dolist (next list_fx) (setf list_nofx (append list_nofx (list (cdr next)))))
+          list_nofx))
+
+;This is a helper function for displaying the result.
+(defun display_helper ()
+    (let* ((dir_string))
+          
+    (dolist (next path)
+        (cond ((= (car next) 0) (setf dir_string "START STATE")) 
+            ((= (car next) 1) (setf dir_string "UP")) 
+            ((= (car next) 2) (setf dir_string "RIGHT")) 
+            ((= (car next) 3) (setf dir_string "DOWN")) 
+            ((= (car next) 4) (setf dir_string "LEFT")))
+        (terpri)
+        (princ dir_string)
+        (terpri)
+        (print_board (cddr next))
+        )))
+
+;After finding the solution, then I use backtracking to figure out the path of the solution. The first element in the list represent the moving dirction of the previous step
+(defun display_result (board)
+    (let* ((dir) (index) (pre_board nil) (current_board nil))
+          
+          (cond ((= (car board) 1) (setf dir 3))
+              ((= (car board) 2) (setf dir 4))
+              ((= (car board) 3) (setf dir 1))
+              ((= (car board) 4) (setf dir 2)))
+          
+          (setf index (find_index 0 (cddr board)))
+          (setf pre_board (swap_pos index dir (cddr board)))
+          (setf current_board (car (member pre_board checked :test #'equal :key #'cddr)))
+          (setf path (append (list current_board) path))
+          (cond ((= (car current_board) 0) (display_helper)) (t (display_result current_board)))
+          ))
+ 
+;I didn't want to use global variables, but since Im using recursion, a bit of help from global variables make things simpler
+(defvar frontier nil)
+(defvar checked nil)
+(defvar step_count 0)
+(defvar path nil)
+
+;This is the main function that finds the solution, it will be called recursively until either 1. frontier is empty (no solution for this board setup 2. A solution is found
+(defun helper (current end)
+    ;error check for no solution situation
+    (cond ((null frontier) (print "There is no result for this board setup")) (t
+       (let* ((dir) (dir_string) (gx) (direction nil) (index) (children nil) (unsorted nil) (sorted nil) (to_check nil))
+          (setf dir (car current))
+             
+             ;If a solution is found, then call display_result for backtracking
+             (cond ((equal (cddr current) end) 
+                 (terpri)
+                 (princ "Solution found") 
+                 (terpri)
+                 ;path is the list containing all the steps from start to goal
+                 (setf path (list (append current path)))
+                 (terpri) 
+                 (display_result current)
+                 (terpri)
+                 ;The second number in each sub-element of frontier is the total steps of movement already being done
+                 (princ "This is the goal, total steps: ")
+                 (prin1 (cadr current))
+                 ) (t 
+                    (setf step_count (+ step_count 1))
+                    
+                    ;Push the first element of frontier to checked list
+                    (setf checked (append checked (list (car frontier))))
+                    
+                    ;Pop the first element of frontier
+                    (setf frontier (cdr frontier))
+                    
+                    ;Total number of actual steps +=1
+                    (setf gx (+ (cadr current) 1))
+                    
+                    ;Getting rid of direction and gx for the sake of applying find_available_dir function
+                    (setf current (cddr current))
+                    (setf direction (find_available_dir current))
+                    
+                    ;adding direction and gx back to produce all possible children (next board setup to be checked)
+                    (setf index (find_index 0 current))
+                    (dolist (next direction) (setf children (append children (list (cons next (cons gx (swap_pos index next current)))))))
+                    
+                    ;check if there's any children that is already being checked
+                    (dolist (next children) 
+                        (cond ((not (null (member (cddr next) checked :test #'equal :key #'cddr))) (setf children (remove next children :test #'equal)))
+                            ((not (null (member (cddr next) frontier :test #'equal :key #'cddr))) (setf children (remove next children :test #'equal)))
+                            (t nil)))
+                    
+                    ;push childrens into frontier
+                    (dolist (next children)
+                        (setf frontier (append frontier (list next))))
+                    
+                    ;sort using heuristic value
+                    (setf frontier (Manhattan_sort frontier end))
+                    
+                    ;check the element with the smallest heuristic value
+                    (helper (car frontier) end)
+        
+    ))))))
+
+;This part only handle the legal checking of the board and some setup 
+(defun 8-puzzle (start end)
+    
+    ;If either start or end is not legal, end the program execution
+    (cond ((null (check_board start)) (princ "illegal start board")) (t 
+    (cond ((null (check_board end)) (princ "illegal end board")) (t  
+    (cond ((equal start end) (princ "Solution found") (terpri) (print_board start) (terpri) (princ "No action required")) (t
+    
+       (let* ((unsorted nil) (children nil) (sorted_nogx nil) (sorted_gx nil) (direction nil) (index) (current_board) (gx 0))
+             (setf direction (find_available_dir start))
+             (setf index (find_index 0 start))
+             (setf current_board start)
+             (setf gx (+ gx 1))
+             (setf step_count (+ step_count 1))
+             
+             ;first set of children
+             (dolist (next direction) (setf children (append children (list (cons next (cons gx (swap_pos index next current_board)))))))
+          
+             (setf sorted_gx (Manhattan_sort children end))
+             (setf frontier sorted_gx)
+             
+             ;push start into checked list
+             (setf checked (append checked (list (cons 0 (cons 0 start)))))
+             (helper (car frontier) end)
+          
+    ))))))))

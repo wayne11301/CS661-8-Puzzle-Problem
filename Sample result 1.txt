@@ -1,0 +1,76 @@
+Input:
+(8-puzzle '(4 2 0 5 1 8 7 6 3) '(1 2 3 4 5 6 7 8 0))
+
+Output:
+board ok
+board ok
+
+Solution found
+
+
+START STATE
+420
+518
+763
+
+LEFT
+402
+518
+763
+
+DOWN
+412
+508
+763
+
+RIGHT
+412
+580
+763
+
+DOWN
+412
+583
+760
+
+LEFT
+412
+583
+706
+
+UP
+412
+503
+786
+
+LEFT
+412
+053
+786
+
+UP
+012
+453
+786
+
+RIGHT
+102
+453
+786
+
+RIGHT
+120
+453
+786
+
+DOWN
+123
+450
+786
+
+DOWN
+123
+456
+780
+
+This is the goal, total steps: 12
