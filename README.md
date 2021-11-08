@@ -17,3 +17,6 @@ For example, if a board is (1 2 3 4 5 6 7 8 0), I would make it (3 10 1 2 3 4 5 
 
 10 means the total count of movement from start to this board
 
+### Video explanation
+
+https://www.youtube.com/watch?v=wJu3IZq1NFs
