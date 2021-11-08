@@ -6,8 +6,7 @@ Programming Language: Lisp
 
 Approach: A* search using Manhattan value as the heuristic
 
-
-Some important note:
+### Some important note:
 1. My approach of solving this problem is by using recursion. After finding a result, then I use backtracking to find the correct path from start to result
 2. For the sake of performing backtracking and keep the step count, I attached 2 additional numbers in from of every lists (board).
 
